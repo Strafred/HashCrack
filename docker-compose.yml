@@ -1,0 +1,16 @@
+version: "3.9"
+services:
+  manager:
+    container_name: manager
+    build: ./Manager
+    ports:
+      - "8080:8080"
+    environment:
+      - WORKERS_NUMBER=${WORKERS_NUMBER}
+  worker:
+    build: ./Worker
+    deploy:
+      replicas: ${WORKERS_NUMBER}
+  ubuntu:
+    container_name: ubuntu
+    build: ./Ubuntu
