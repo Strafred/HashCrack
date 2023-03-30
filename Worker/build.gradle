@@ -2,7 +2,7 @@ plugins {
     id 'java'
     id 'idea'
     id 'application'
-    id 'org.springframework.boot' version '3.0.4'
+    id 'org.springframework.boot' version '3.0.5'
 }
 
 apply plugin: 'io.spring.dependency-management'
@@ -14,11 +14,51 @@ repositories {
     mavenCentral()
 }
 
+configurations {
+    jaxb
+}
+
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
+    implementation 'org.springframework.boot:spring-boot-starter-web-services'
+    implementation 'wsdl4j:wsdl4j'
+    jaxb (
+            "org.glassfish.jaxb:jaxb-xjc",
+            "jakarta.xml.bind:jakarta.xml.bind-api",
+            "org.glassfish.jaxb:jaxb-runtime",
+    )
+    testImplementation('org.springframework.boot:spring-boot-starter-test')
 }
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src/main/java'
+            srcDir 'build/generated-sources/jaxb'
+        }
+    }
+}
+
+task genJaxb {
+    ext.sourcesDir = "${buildDir}/generated-sources/jaxb"
+    ext.xsdsDir = "src/main/resources/"
+    outputs.dir sourcesDir
+
+    doLast() {
+        project.ant {
+            taskdef name: "xjc", classname: "com.sun.tools.xjc.XJCTask", classpath: configurations.jaxb.asPath
+            println(configurations.jaxb.asPath)
+            mkdir(dir: sourcesDir)
+            xjc(destdir: sourcesDir) {
+                arg(value: "-wsdl")
+                schema(dir: xsdsDir, includes: "*.xsd")
+                produces(dir: sourcesDir, includes: "**/*.java")
+            }
+        }
+    }
+}
+
+compileJava.dependsOn genJaxb
 
 test {
     useJUnitPlatform()
