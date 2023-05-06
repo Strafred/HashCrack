@@ -1,10 +1,12 @@
 package org.example;
 
+import java.util.List;
+
 public class Job {
     public Status status;
-    public String[] data;
+    public List<String> data;
 
-    public Job(Status status, String[] data) {
+    public Job(Status status, List<String> data) {
         this.status = status;
         this.data = data;
     }
@@ -13,7 +15,7 @@ public class Job {
         return status;
     }
 
-    public String[] getData() {
+    public List<String> getData() {
         return data;
     }
 }

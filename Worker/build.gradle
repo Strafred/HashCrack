@@ -21,7 +21,9 @@ configurations {
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-web-services'
+    implementation 'com.github.dpaukov:combinatoricslib3:3.3.0'
     implementation 'wsdl4j:wsdl4j'
+    implementation 'commons-codec:commons-codec:1.15'
     jaxb (
             "org.glassfish.jaxb:jaxb-xjc",
             "jakarta.xml.bind:jakarta.xml.bind-api",

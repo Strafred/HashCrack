@@ -11,6 +11,3 @@ services:
     build: ./Worker
     deploy:
       replicas: ${WORKERS_NUMBER}
-  ubuntu:
-    container_name: ubuntu
-    build: ./Ubuntu

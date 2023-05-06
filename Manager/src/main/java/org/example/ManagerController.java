@@ -1,14 +1,15 @@
 package org.example;
 
+import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClient;
+import ru.nsu.ccfit.schema.crack_hash_response.CrackHashWorkerResponse;
 
 import java.time.Duration;
-import java.util.Objects;
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
-import reactor.core.scheduler.Schedulers;
 
 
 @RestController
@@ -16,6 +17,7 @@ import reactor.core.scheduler.Schedulers;
 public class ManagerController {
     private final ManagerService managerService;
     private ConcurrentHashMap<String, Job> jobs = new ConcurrentHashMap<>();
+    private final int TIMEOUT = 15000;
 
     @Autowired
     public ManagerController(ManagerService managerService) {
@@ -36,32 +38,42 @@ public class ManagerController {
             var marshaller = managerService.createMarshaller();
             xml = managerService.createCrackHashRequestXml(hashInfo.getHash(), hashInfo.getMaxLength(), requestId, marshaller);
         } catch (JAXBException e) {
-            System.err.println("Something wrong with auto-generated classes from XSD schema!");
+            System.err.println("Something wrong with auto-generated class from XSD schema");
             System.err.println("JAXBException: " + e.getMessage());
         }
 
-        jobs.put(requestId, new Job(Status.IN_PROGRESS, new String[0]));
+        jobs.put(requestId, new Job(Status.IN_PROGRESS, new ArrayList<>()));
 
-        WebClient client = WebClient.create("http://localhost:8081/worker/internal/api/manager/hash/crack/request");
-        client.patch()
+        WebClient client = WebClient.create("http://hashcrack-worker-1:8081/worker/internal/api/worker/hash/crack/task");
+        client.post()
                 .header("Content-Type", "text/xml")
                 .bodyValue(xml)
                 .retrieve()
                 .bodyToMono(String.class)
-                .timeout(Duration.ofSeconds(15))
-                .doFinally((data) -> {
-                    System.err.println("rofl " + data);
-                    if (jobs.get(requestId).getStatus() == Status.IN_PROGRESS) {
-                        jobs.put(requestId, new Job(Status.ERROR, new String[0]));
-                    }
-                })
-                .subscribeOn(Schedulers.single()) // ???
-                .subscribe(response -> {
-                    System.err.println(response);
-                    if (response.equals("OK")) {
-                        jobs.put(requestId, new Job(Status.READY, new String[0]));
-                    }
-                });
+                .timeout(Duration.ofMillis(TIMEOUT))
+                .subscribe(
+                        xmlResponse -> {
+                            System.out.println("Response from worker:");
+                            System.out.println(xmlResponse);
+
+                            JAXBContext context;
+                            CrackHashWorkerResponse workerResponseData = null;
+                            try {
+                                context = JAXBContext.newInstance(CrackHashWorkerResponse.class);
+                                workerResponseData = (CrackHashWorkerResponse) context.createUnmarshaller().unmarshal(new java.io.StringReader(xmlResponse));
+                            } catch (JAXBException e) {
+                                System.err.println("JAXBException: " + e.getMessage());
+                            }
+
+                            System.out.println("Words:");
+                            System.out.println(workerResponseData.getAnswers().getWords());
+                            jobs.put(requestId, new Job(Status.READY, workerResponseData.getAnswers().getWords()));
+                        },
+                        error -> {
+                            System.err.println(error.getMessage());
+                            jobs.put(requestId, new Job(Status.ERROR, new ArrayList<>()));
+                        }
+                );
 
         return requestId;
     }
