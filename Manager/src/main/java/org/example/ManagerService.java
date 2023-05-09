@@ -2,9 +2,10 @@ package org.example;
 
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
+import jakarta.xml.bind.Marshaller;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.nsu.ccfit.schema.crack_hash_request.CrackHashManagerRequest;
-import jakarta.xml.bind.Marshaller;
 
 import java.io.StringWriter;
 import java.util.List;
@@ -13,10 +14,20 @@ import java.util.UUID;
 @Service
 public class ManagerService {
     CrackHashManagerRequest.Alphabet alphabet = new CrackHashManagerRequest.Alphabet();
+    ManagerRepository managerRepository;
 
-    public ManagerService() {
-        alphabet.getSymbols().addAll(List.of("abcdefghijklmnopqrstuvwxyz0123456789".split("")));
-        System.out.println("Alphabet is: " + alphabet.getSymbols());
+    @Autowired
+    public ManagerService(ManagerRepository managerRepository) {
+        this.alphabet.getSymbols().addAll(List.of("abcdefghijklmnopqrstuvwxyz0123456789".split("")));
+        this.managerRepository = managerRepository;
+    }
+
+    public void saveJob(String requestId, Job job) {
+        managerRepository.insertJob(requestId, job);
+    }
+
+    public Job getStatus(String requestId) {
+        return managerRepository.getJob(requestId);
     }
 
     public Marshaller createMarshaller() throws JAXBException {

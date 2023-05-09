@@ -9,15 +9,13 @@ import ru.nsu.ccfit.schema.crack_hash_response.CrackHashWorkerResponse;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.concurrent.ConcurrentHashMap;
 
 
 @RestController
 @RequestMapping("/manager")
 public class ManagerController {
+    private static final int TIMEOUT = 15000;
     private final ManagerService managerService;
-    private ConcurrentHashMap<String, Job> jobs = new ConcurrentHashMap<>();
-    private final int TIMEOUT = 15000;
 
     @Autowired
     public ManagerController(ManagerService managerService) {
@@ -26,7 +24,7 @@ public class ManagerController {
 
     @GetMapping("/api/hash/status")
     public Job getJobStatus(@RequestParam String requestId) {
-        return jobs.get(requestId);
+        return managerService.getStatus(requestId);
     }
 
     @PostMapping("/api/hash/crack")
@@ -42,7 +40,7 @@ public class ManagerController {
             System.err.println("JAXBException: " + e.getMessage());
         }
 
-        jobs.put(requestId, new Job(Status.IN_PROGRESS, new ArrayList<>()));
+        managerService.saveJob(requestId, new Job(Status.IN_PROGRESS, new ArrayList<>()));
 
         WebClient client = WebClient.create("http://hashcrack-worker-1:8081/worker/internal/api/worker/hash/crack/task");
         client.post()
@@ -67,11 +65,11 @@ public class ManagerController {
 
                             System.out.println("Words:");
                             System.out.println(workerResponseData.getAnswers().getWords());
-                            jobs.put(requestId, new Job(Status.READY, workerResponseData.getAnswers().getWords()));
+                            managerService.saveJob(requestId, new Job(Status.READY, workerResponseData.getAnswers().getWords()));
                         },
                         error -> {
                             System.err.println(error.getMessage());
-                            jobs.put(requestId, new Job(Status.ERROR, new ArrayList<>()));
+                            managerService.saveJob(requestId, new Job(Status.ERROR, new ArrayList<>()));
                         }
                 );
 

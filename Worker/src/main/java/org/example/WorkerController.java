@@ -2,8 +2,6 @@ package org.example;
 
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.paukov.combinatorics3.Generator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -11,7 +9,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.nsu.ccfit.schema.crack_hash_request.CrackHashManagerRequest;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
