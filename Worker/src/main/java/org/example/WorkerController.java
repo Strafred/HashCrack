@@ -31,12 +31,17 @@ public class WorkerController {
         System.out.println(requestData.getMaxLength());
         System.out.println(requestData.getAlphabet().getSymbols());
 
-        List<String> words = workerService.generateWords(requestData.getMaxLength(), requestData.getAlphabet().getSymbols(), requestData.getHash());
+        List<String> words = workerService.generateWords(
+                requestData.getPartNumber(),
+                requestData.getPartCount(),
+                requestData.getMaxLength(),
+                requestData.getAlphabet().getSymbols(),
+                requestData.getHash());
 
         String answerXml = "";
         try {
             var marshaller = workerService.createMarshaller();
-            answerXml = workerService.createCrackHashResponseXml(words, requestData.getRequestId(), marshaller);
+            answerXml = workerService.createCrackHashResponseXml(words, requestData, marshaller);
         } catch (JAXBException e) {
             System.err.println("Something wrong with auto-generated class from XSD schema");
             System.err.println("JAXBException: " + e.getMessage());

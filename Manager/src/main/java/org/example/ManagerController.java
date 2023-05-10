@@ -15,6 +15,7 @@ import java.util.ArrayList;
 @RequestMapping("/manager")
 public class ManagerController {
     private static final int TIMEOUT = 15000;
+    private static final int WORKERS_NUMBER = Integer.parseInt(System.getenv("WORKERS_NUMBER"));
     private final ManagerService managerService;
 
     @Autowired
@@ -30,48 +31,50 @@ public class ManagerController {
     @PostMapping("/api/hash/crack")
     @ResponseBody
     public String crackHash(@RequestBody HashInfo hashInfo) {
-        String xml = "";
         String requestId = managerService.generateUniqueID();
-        try {
-            var marshaller = managerService.createMarshaller();
-            xml = managerService.createCrackHashRequestXml(hashInfo.getHash(), hashInfo.getMaxLength(), requestId, marshaller);
-        } catch (JAXBException e) {
-            System.err.println("Something wrong with auto-generated class from XSD schema");
-            System.err.println("JAXBException: " + e.getMessage());
-        }
+        managerService.saveJob(requestId, new Job(Status.IN_PROGRESS, new ArrayList<>(), WORKERS_NUMBER));
 
-        managerService.saveJob(requestId, new Job(Status.IN_PROGRESS, new ArrayList<>()));
+        for (int i = 0; i < WORKERS_NUMBER; i++) {
+            String xml = "";
+            try {
+                var marshaller = managerService.createMarshaller();
+                xml = managerService.createCrackHashRequestXml(WORKERS_NUMBER, i, hashInfo.getHash(), hashInfo.getMaxLength(), requestId, marshaller);
+            } catch (JAXBException e) {
+                System.err.println("Something wrong with auto-generated class from XSD schema");
+                System.err.println("JAXBException: " + e.getMessage());
+            }
 
-        WebClient client = WebClient.create("http://hashcrack-worker-1:8081/worker/internal/api/worker/hash/crack/task");
-        client.post()
-                .header("Content-Type", "text/xml")
-                .bodyValue(xml)
-                .retrieve()
-                .bodyToMono(String.class)
-                .timeout(Duration.ofMillis(TIMEOUT))
-                .subscribe(
-                        xmlResponse -> {
-                            System.out.println("Response from worker:");
-                            System.out.println(xmlResponse);
+            WebClient client = WebClient.create("http://hashcrack-worker-1:8081/worker/internal/api/worker/hash/crack/task");
+            client.post()
+                    .header("Content-Type", "text/xml")
+                    .bodyValue(xml)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .timeout(Duration.ofMillis(TIMEOUT))
+                    .subscribe(
+                            xmlResponse -> {
+                                System.out.println("Response from worker:");
+                                System.out.println(xmlResponse);
 
-                            JAXBContext context;
-                            CrackHashWorkerResponse workerResponseData = null;
-                            try {
-                                context = JAXBContext.newInstance(CrackHashWorkerResponse.class);
-                                workerResponseData = (CrackHashWorkerResponse) context.createUnmarshaller().unmarshal(new java.io.StringReader(xmlResponse));
-                            } catch (JAXBException e) {
-                                System.err.println("JAXBException: " + e.getMessage());
+                                JAXBContext context;
+                                CrackHashWorkerResponse workerResponseData = null;
+                                try {
+                                    context = JAXBContext.newInstance(CrackHashWorkerResponse.class);
+                                    workerResponseData = (CrackHashWorkerResponse) context.createUnmarshaller().unmarshal(new java.io.StringReader(xmlResponse));
+                                } catch (JAXBException e) {
+                                    System.err.println("JAXBException: " + e.getMessage());
+                                }
+
+                                System.out.println("Words:");
+                                System.out.println(workerResponseData.getAnswers().getWords());
+                                managerService.confirmJob(requestId, workerResponseData.getAnswers().getWords(), workerResponseData.getPartNumber());
+                            },
+                            error -> {
+                                System.err.println(error.getMessage());
+                                managerService.saveJob(requestId, new Job(Status.ERROR, new ArrayList<>(), WORKERS_NUMBER));
                             }
-
-                            System.out.println("Words:");
-                            System.out.println(workerResponseData.getAnswers().getWords());
-                            managerService.saveJob(requestId, new Job(Status.READY, workerResponseData.getAnswers().getWords()));
-                        },
-                        error -> {
-                            System.err.println(error.getMessage());
-                            managerService.saveJob(requestId, new Job(Status.ERROR, new ArrayList<>()));
-                        }
-                );
+                    );
+        }
 
         return requestId;
     }

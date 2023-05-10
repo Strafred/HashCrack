@@ -41,8 +41,10 @@ public class ManagerService {
         return UUID.randomUUID().toString();
     }
 
-    public String createCrackHashRequestXml(String hash, int maxLength, String uniqueID, Marshaller marshaller) throws JAXBException {
+    public String createCrackHashRequestXml(int partCount, int partNumber, String hash, int maxLength, String uniqueID, Marshaller marshaller) throws JAXBException {
         CrackHashManagerRequest requestData = new CrackHashManagerRequest();
+        requestData.setPartCount(partCount);
+        requestData.setPartNumber(partNumber);
         requestData.setRequestId(uniqueID);
         requestData.setHash(hash);
         requestData.setMaxLength(maxLength);
@@ -54,5 +56,9 @@ public class ManagerService {
         System.out.println(xml);
 
         return xml;
+    }
+
+    public void confirmJob(String requestId, List<String> words, int partNumber) {
+        managerRepository.makeJobPartDone(requestId, words, partNumber);
     }
 }

@@ -5,6 +5,7 @@ import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.paukov.combinatorics3.Generator;
+import org.paukov.combinatorics3.IGenerator;
 import org.springframework.stereotype.Service;
 import ru.nsu.ccfit.schema.crack_hash_request.CrackHashManagerRequest;
 import ru.nsu.ccfit.schema.crack_hash_response.CrackHashWorkerResponse;
@@ -22,29 +23,41 @@ public class WorkerService {
         return marshaller;
     }
 
-    public List<String> generateWords(int maxLength, List<String> alphabet, String targetHash) {
+    public List<String> generateWords(int partNumber, int partCount, int maxLength, List<String> alphabet, String targetHash) {
         List<String> words = new ArrayList<>();
 
         for (int length = 1; length <= maxLength; length++) {
-            Generator.permutation(alphabet)
+            var combinationsIterator = Generator.permutation(alphabet)
                     .withRepetitions(length)
-                    .stream()
-                    .forEach(lettersCombination -> {
-                        var word = String.join("", lettersCombination);
-                        var hash = DigestUtils.md5Hex(word);
-                        if (hash.equals(targetHash)) {
-                            System.out.println(word);
-                            words.add(word);
-                        }
-                    });
-        }
+                    .iterator();
 
+            int count = 0;
+
+            while (combinationsIterator.hasNext()) {
+                var lettersCombination = combinationsIterator.next();
+                count++;
+
+                if (count % partCount == partNumber) {
+                    var word = String.join("", lettersCombination);
+                    var hash = DigestUtils.md5Hex(word);
+                    if (hash.equals(targetHash)) {
+                        System.out.println(word);
+                        words.add(word);
+                    }
+                }
+
+                if (count % partCount == 0) {
+                    count = 0;
+                }
+            }
+        }
         return words;
     }
 
-    public String createCrackHashResponseXml(List<String> words, String uniqueID, Marshaller marshaller) throws JAXBException {
+    public String createCrackHashResponseXml(List<String> words, CrackHashManagerRequest requestData, Marshaller marshaller) throws JAXBException {
         CrackHashWorkerResponse responseData = new CrackHashWorkerResponse();
-        responseData.setRequestId(uniqueID);
+        responseData.setRequestId(requestData.getRequestId());
+        responseData.setPartNumber(requestData.getPartNumber());
         var answers = new CrackHashWorkerResponse.Answers();
         answers.getWords().addAll(words);
         responseData.setAnswers(answers);
