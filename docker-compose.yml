@@ -58,11 +58,15 @@ services:
       - "8080:8080"
     environment:
       - WORKERS_NUMBER=${WORKERS_NUMBER}
+    depends_on:
+      - rabbitmq3
 
   worker:
     build: ./Worker
     deploy:
       replicas: ${WORKERS_NUMBER}
+    depends_on:
+      - rabbitmq3
 
 volumes:
   mongodata1:

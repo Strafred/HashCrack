@@ -5,7 +5,6 @@ import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.paukov.combinatorics3.Generator;
-import org.paukov.combinatorics3.IGenerator;
 import org.springframework.stereotype.Service;
 import ru.nsu.ccfit.schema.crack_hash_request.CrackHashManagerRequest;
 import ru.nsu.ccfit.schema.crack_hash_response.CrackHashWorkerResponse;

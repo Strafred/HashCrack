@@ -23,4 +23,15 @@ public class MongoConfig {
         }
         return database.getCollection("jobs");
     }
+
+    @Bean
+    public MongoCollection<Document> requestsCollection() {
+        MongoClient mongoClient = MongoClients.create("mongodb://mongodb1:27017,mongodb2:27017,mongodb3:27017");
+        MongoDatabase database = mongoClient.getDatabase("manager");
+        List<String> collectionNames = database.listCollectionNames().into(new ArrayList<>());
+        if (!collectionNames.contains("requests")) {
+            database.createCollection("requests");
+        }
+        return database.getCollection("requests");
+    }
 }
