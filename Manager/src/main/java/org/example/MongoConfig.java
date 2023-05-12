@@ -14,10 +14,18 @@ import java.util.List;
 @Configuration
 public class MongoConfig {
     @Bean
-    public MongoCollection<Document> jobsCollection() {
+    public MongoDatabase database() {
         MongoClient mongoClient = MongoClients.create("mongodb://mongodb1:27017,mongodb2:27017,mongodb3:27017");
-        MongoDatabase database = mongoClient.getDatabase("manager");
-        List<String> collectionNames = database.listCollectionNames().into(new ArrayList<>());
+        return mongoClient.getDatabase("manager");
+    }
+
+    @Bean
+    public List<String> collectionNames(MongoDatabase database) {
+        return database.listCollectionNames().into(new ArrayList<>());
+    }
+
+    @Bean
+    public MongoCollection<Document> jobsCollection(List<String> collectionNames, MongoDatabase database) {
         if (!collectionNames.contains("jobs")) {
             database.createCollection("jobs");
         }
@@ -25,10 +33,7 @@ public class MongoConfig {
     }
 
     @Bean
-    public MongoCollection<Document> requestsCollection() {
-        MongoClient mongoClient = MongoClients.create("mongodb://mongodb1:27017,mongodb2:27017,mongodb3:27017");
-        MongoDatabase database = mongoClient.getDatabase("manager");
-        List<String> collectionNames = database.listCollectionNames().into(new ArrayList<>());
+    public MongoCollection<Document> requestsCollection(List<String> collectionNames, MongoDatabase database) {
         if (!collectionNames.contains("requests")) {
             database.createCollection("requests");
         }

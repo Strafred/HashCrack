@@ -18,7 +18,6 @@ public class ManagerRepository {
     @Autowired
     public ManagerRepository(MongoCollection<Document> jobsCollection) {
         this.jobsCollection = jobsCollection;
-
         jobsCollection.find().forEach(document -> {
             String requestId = document.getString("requestId");
             Status jobStatus = Status.valueOf(document.get("jobStatus", String.class));
@@ -34,7 +33,6 @@ public class ManagerRepository {
         document.append("jobStatus", job.getStatus());
         document.append("jobData", job.getData());
         document.append("parts", job.getParts());
-
         jobsCollection.updateOne(
                 Filters.eq("requestId", requestId),
                 new Document("$set", document),
@@ -44,7 +42,6 @@ public class ManagerRepository {
 
     public void insertJob(String requestId, Job job) {
         jobs.put(requestId, job);
-
         saveJob2Db(requestId, job);
     }
 
@@ -59,7 +56,6 @@ public class ManagerRepository {
             job.setStatus(Status.READY);
         }
         job.data.addAll(words);
-
         saveJob2Db(requestId, job);
     }
 }
