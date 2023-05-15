@@ -1,4 +1,4 @@
-# 2 lab
+# 2 lab added: https://docs.google.com/document/d/17hjYbrgWXYeggl-h-qkYsqoWHCT_QI80PLSzCRdrnZc/edit?usp=sharing
 ## Run:
 docker-compose up --build
 
